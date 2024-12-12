@@ -1,0 +1,64 @@
+version: '3.8'
+ 
+services:
+  appointment-service:
+    #build:
+     # context: .  # Use the current directory as the build context
+    image: appointmentimage-img:latest
+    ports:
+      - "8802:8802"  # Map container port 7000 to host port 7000
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_PROFILES_ACTIVE=dev
+      - EUREKA_SERVER_URL=http://EurekaServer-HospitalManagement:8761/eureka/  # Point to Eureka service
+    depends_on:
+      - db  # This ensures that the product service starts after the DB container
+      - EurekaServer-HospitalManagement  # Ensure Eureka service is up before this service
+  EurekaServer-HospitalManagement:
+    #build:
+     # context: .  # Use the current directory as the build context
+    image: eurekaservice-img:latest
+    ports:
+      - "8761:8761"  # Map container port 7000 to host port 7000
+    environment:
+      - EUREKA_SERVER_URL=http://localhost:8761/eureka/  # Eureka URL for other services to register
+      - SPRING_APPLICATION_NAME=EurekaServer-HospitalManagement  # Specify the application name
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - db  # This ensures that the product service starts after the DB container
+  api-gateway:
+    #build:
+     # context: .  # Use the current directory as the build context
+    image: gatewayimage-img:latest
+    ports:
+      - "8013:8013"  # Map container port 7000 to host port 7000
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_PROFILES_ACTIVE=dev
+      - EUREKA_SERVER_URL=http://EurekaServer-HospitalManagement:8761/eureka/  # Point to Eureka service
+    depends_on:
+      - db  # This ensures that the product service starts after the DB container
+      - EurekaServer-HospitalManagement  # Ensure Eureka service is up before this service
+ 
+ 
+  db:
+    image: postgres:13  # Use the official PostgreSQL 13 image
+    container_name: postgres-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"  # Expose the PostgreSQL port
+    volumes:
+      - postgres-data:/var/lib/postgresql/data  # Persist DB data between restarts
+ 
+volumes:
+  postgres-data:  # Define a volume to persist database data
